@@ -9,8 +9,7 @@
     <version>0.1-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -57,12 +56,15 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- GraalJS ScriptEngine (JS eval replacement for Nashorn, Java 25 compat) -->
+        <!-- GraalVM Polyglot for multi-language support and interop -->
         <dependency>
-            <groupId>org.graalvm.js</groupId>
-            <artifactId>js-scriptengine</artifactId>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
             <version>25.0.1</version>
+            <type>pom</type>
         </dependency>
+
+        <!-- GraalJS Language Module for Polyglot -->
         <dependency>
             <groupId>org.graalvm.polyglot</groupId>
             <artifactId>js</artifactId>
@@ -70,7 +72,27 @@
             <type>pom</type>
         </dependency>
 
-        <!-- Testing: JUnit 5 and Mockito (unit for ExpressionEvaluator, integration for sim runs) -->
+        <!-- GraalJS ScriptEngine for javax.script integration (if needed for legacy) -->
+        <dependency>
+            <groupId>org.graalvm.js</groupId>
+            <artifactId>js-scriptengine</artifactId>
+            <version>25.0.1</version>
+        </dependency>
+
+        <!-- Truffle API for advanced language implementation and interop (only one instance) -->
+        <dependency>
+            <groupId>org.graalvm.truffle</groupId>
+            <artifactId>truffle-api</artifactId>
+            <version>25.0.1</version>
+        </dependency>
+
+        <!-- SDK for additional GraalVM utilities -->
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>graal-sdk</artifactId>
+            <version>25.0.1</version>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

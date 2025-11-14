@@ -1,11 +1,11 @@
 package com.christophe.simulator.entities;
 
-import com.christophe.simulator.utils.ExpressionEvaluator;
 import com.christophe.simulator.Simulator;
-
+import com.christophe.simulator.utils.ExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -19,13 +19,15 @@ public class BaseEvent implements Event {
     private final String type;
     private final String conditionExpr;  // e.g., "$queue.size < $max_capacity"
     private final String effectExpr;  // e.g., "queue.add($notified_id)" - stub eval
+    private final Map<String, Object> params;  // Added for event params like entity_id
 
-    public BaseEvent(long time, int priority, String type, String conditionExpr, String effectExpr) {
+    public BaseEvent(long time, int priority, String type, String conditionExpr, String effectExpr, Map<String, Object> params) {
         this.time = time;
         this.priority = priority;
         this.type = type;
         this.conditionExpr = conditionExpr;
         this.effectExpr = effectExpr;
+        this.params = params != null ? new HashMap<>(params) : new HashMap<>();
     }
 
     @Override
@@ -44,33 +46,37 @@ public class BaseEvent implements Event {
     }
 
     @Override
+    public Map<String, Object> getParams() {
+        return new HashMap<>(params);  // Defensive copy
+    }
+
+    @Override
     public void apply(Simulator simulator, Map<String, Object> context) throws Exception {
+        logger.debug("Applying event {} with context keys: {}", type, context.keySet());
         if (conditionExpr != null) {
+            logger.debug("Evaluating condition: {}", conditionExpr);
             Object cond = ExpressionEvaluator.evaluate(conditionExpr, context);
-            if (!(cond instanceof Boolean) || ! (Boolean) cond) {
-                logger.debug("Condition '{}' false for event {}", conditionExpr, type);
+            logger.debug("Condition result: {}", cond);
+            if (!(cond instanceof Boolean) || !(Boolean) cond) {
+                logger.debug("Condition false for event {}", type);
                 return;
             }
         }
 
         if (effectExpr != null) {
-            if (effectExpr.contains("=")) {
-                String[] parts = effectExpr.split("=", 2);  // Split once
-                String attr = parts[0].trim().replace("$", "");
-                String right = parts[1].trim();
-                Object value = ExpressionEvaluator.evaluate(right, context);
-                BaseEntity notified = (BaseEntity) context.get("notified_entity");
-                if (notified != null) {
-                    notified.setAttribute(attr, value);
-                    logger.info("Set attr '{}' to {} on entity {}", attr, value, notified.getId());
-                } else {
-                    logger.warn("No notified entity for assignment in effect '{}'", effectExpr);
-                }
-            } else {
-                Object result = ExpressionEvaluator.evaluate(effectExpr, context);
-                logger.info("Applied non-assignment effect '{}' for event {}, result: {}", effectExpr, type, result);
-                // Future: if (result instanceof Event) simulator.enqueueEvent((Event) result);
-            }
+            logger.debug("Evaluating effect: {}", effectExpr);
+            Object result = ExpressionEvaluator.evaluate(effectExpr, context);
+            logger.info("Applied effect '{}' for event {}, result: {}", effectExpr, type, result);
         }
+
+        // If notification, broadcast to entities for handleActions (moved to Simulator.run for broadcast)
+    }
+
+    @Override
+    public int compareTo(Event o) {
+        if (this.time != o.getTime()) {
+            return Long.compare(this.time, o.getTime());
+        }
+        return Integer.compare(this.priority, o.getPriority());  // Lower priority first (higher priority = lower number?)
     }
 }
